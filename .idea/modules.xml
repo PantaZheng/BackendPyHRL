@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/BackendPythonHduRemoteLab.iml" filepath="$PROJECT_DIR$/.idea/BackendPythonHduRemoteLab.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/BackendPyHRL.iml" filepath="$PROJECT_DIR$/.idea/BackendPyHRL.iml" />
     </modules>
   </component>
 </project>

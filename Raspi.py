@@ -4,11 +4,13 @@ import os
 import paramiko
 
 
+
+
 def transport(ip,docemnt_name):
     slave = paramiko.Transport(ip, 22)
     slave.connect(username='pi', password='52sunsiyi..')
     sftp=paramiko.SFTPClient.from_transport(slave)
-    sftp.put(os.path.abspath('.')+"\\Raspi\\"+docemnt_name,"/home/pi/Files/default.py")
+    sftp.put(os.path.abspath('.')+"\\Raspi\\"+docemnt_name, "/home/pi/Files/default.py")
     slave.close()
 
     ssh=paramiko.SSHClient()
