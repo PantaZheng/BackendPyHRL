@@ -9,6 +9,7 @@ import time
 from bson import json_util as jsonb
 import modbushandle as md
 import raspiberry
+import codecs
 
 '''登录操作'''
 
@@ -17,14 +18,14 @@ def check_account(message):
     id = message["id"]
     password = message["password"]
     account_set = account.find_one({"id": id})
-    account_set.pop("_id")
     if account_set == None:
         data = {"code": "101", "mes": "账户登录：错误，不存在账户", "data": None}
     else:
+        account_set.pop("_id")
         if account_set["password"] != password:
             data = {"code": "102", "mes": "账户登录：错误，密码与账号不符", "data": None}
         else:
-            data = {"code": "100", "mes": "账户登录：成功", "data": list(account_set)}
+            data = {"code": "100", "mes": "账户登录：成功", "data": account_set}
     print("message:" + str(message) + "data:" + str(data))
     return data
 
@@ -71,7 +72,7 @@ def save_file(dir, docement):
 
 
 def make_file(dir, name):
-    bin_file = open(os.path.abspath('.') + "\\" + dir + "\\" + name, "rb")
+    bin_file = codecs.open(os.path.abspath('.') + "\\" + dir + "\\" + name, "r","utf-8")
     temp = bin_file.read()
     bin_file.close()
     return temp
@@ -81,7 +82,7 @@ def make_file(dir, name):
 
 
 def db_log(id, data):
-    db[id]["log"].insert_one({"time": time.time(), "data": str(data)})
+    db[id].insert_one({"time": time.time(), "data": str(data)})
 
 
 '''设备操作：对于设备相关，需要在此修改'''
@@ -91,6 +92,7 @@ def operate(message):
     flag = message["flag"]
     id = message["id"]
     slave = message["slave"]
+    data={}
     if flag == "upload":
         save_file(slave["kind"],message["docement"])
         db.slaves.update({"name": slave["name"]}, {"$set": {"user_experiment": message["file"]["name"]}})
@@ -98,47 +100,43 @@ def operate(message):
     elif flag == "download":
         experiment = message["experiment"]
         slave_kind = message["slave"]["kind"]
-        data = {"code": "401", "mes": "下载文件：" + experiment, "data": make_file(slave_kind, experiment)}
+        data = {"code": "401", "mes": "文件下载在D:\\"+experiment, "data": make_file(slave_kind, experiment)}
     elif flag == "start":
         experiment = message["experiment"]
         slave_kind = message["slave"]["kind"]
-        slave_name = message["slave"]["name"]
         slave_id = message["slave"]["id"]
         slave_state = message["slave"]["state"]
         ip = md.device_host[slave_id]
-        if slave_state == "free":
-            db.slaves.update({"id": slave_id}, {"$set": {"state": "busy"}})
+        db.slaves.update({"id": slave_id}, {"$set": {"state": slave_state}})
         if slave_kind == "RaspberryPi":
-            data = {"code": "402", "mes": slave_name + "从机运行程序结果为：" + raspiberry.transport(ip, experiment),
+            data = {"code": "402", "mes": raspiberry.transport(ip, experiment),
                     "data": None}
         elif slave_kind == "CC3200":
-            data = {"code": "402", "mes": slave_name + "从机运行程序结果为：", "data": None}
+            data = {"code": "402", "mes": "", "data": None}
         elif slave_kind == "Arduino":
-            data = {"code": "402", "mes": slave_name + "从机运行程序结果为：", "data": None}
+            data = {"code": "402", "mes":"", "data": None}
         elif slave_kind == "STM32":
-            data = {"code": "402", "mes": slave_name + "CC3200从机运行程序结果为：", "data": None}
+            data = {"code": "402", "mes":"" , "data": None}
     elif flag == "modbus":
         modbus_mes = message["modbus"]
         res = md.Master(message["slave"]["id"], modbus_mes["function_code"], modbus_mes["starting_address"],
                         modbus_mes["quantity_of_x"], )
-        data = {"code": 100, "mes": "Modbus指令执行结果：" + str(res), "data": None}
+        data = {"code": "403", "mes": "Modbus指令执行结果：" + str(res), "data": None}
     elif flag == "stop":
         slave_kind = message["slave"]["kind"]
-        slave_name = message["slave"]["name"]
         slave_id = message["slave"]["id"]
         slave_state = message["slave"]["state"]
         ip = md.device_host[slave_id]
-        if slave_state == "busy":
-            db.slaves.update({"id": slave_id}, {"$set": {"state": "free"}})
+        db.slaves.update({"id": slave_id}, {"$set": {"state": slave_state}})
         if slave_kind == "RaspberryPi":
-            data = {"code": "401", "mes": slave_name + "停止程序运行：" + raspiberry.stop(ip),
+            data = {"code": "404", "mes":  raspiberry.stop(ip),
                     "data": None}
         elif slave_kind == "CC3200":
-            data = {"code": "401", "mes": slave_name + "从机运行程序结果为：", "data": None}
+            data = {"code": "404", "mes":"", "data": None}
         elif slave_kind == "Arduino":
-            data = {"code": "401", "mes": slave_name + "从机运行程序结果为：", "data": None}
+            data = {"code": "404", "mes": "", "data": None}
         elif slave_kind == "STM32":
-            data = {"code": "401", "mes": slave_name + "CC3200从机运行程序结果为：", "data": None}
+            data = {"code": "404", "mes": "", "data": None}
     print("message:" + str(message) + "data:" + str(data))
     db_log(id, {"message": message, "data": data})
     return data
