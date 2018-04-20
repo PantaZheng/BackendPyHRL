@@ -66,7 +66,7 @@ def get_info(message):
 
 
 def save_file(dir, docement):
-    bin_file = open(os.path.abspath('.') + "\\" + dir + "\\" + docement["name"], "wb")
+    bin_file = codecs.open(os.path.abspath('.') + "\\" + dir + "\\" + docement["name"], "w+", "utf-8")
     bin_file.write(docement["content"])
     bin_file.close()
 
@@ -95,8 +95,7 @@ def operate(message):
     data={}
     if flag == "upload":
         save_file(slave["kind"],message["docement"])
-        db.slaves.update({"name": slave["name"]}, {"$set": {"user_experiment": message["file"]["name"]}})
-        data = {"code": "400", "mes": "上传文件：成功", "data": list(db.slaves.find())}
+        data = {"code": "400", "mes": "上传文件："+slave["name"]+",成功", "data": None}
     elif flag == "download":
         experiment = message["experiment"]
         slave_kind = message["slave"]["kind"]
