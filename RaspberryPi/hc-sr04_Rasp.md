@@ -35,7 +35,7 @@
 1. 采用IO口对TRIG提供触发信号，给至少10us持续时间的高电平信号；
 1. 模块自动发送8个40khz的超声波信号
 1. 如果模块前方存在障碍物，就会反射这些超声波
-1. 如果信号返回， 则模块的ECHO端输出将在发送和接收信号之间的时间内为高电平。根据目标障碍物到源传感器的距离，脉冲宽度范围为150&mu;us到25ms之间，如果没有障碍物，脉冲宽度约为38ms。
+1. 如果信号返回， 则模块的ECHO端输出将在发送和接收信号之间的时间内为高电平。根据目标障碍物到源传感器的距离，脉冲宽度范围为150&mu;s到25ms之间，如果没有障碍物，脉冲宽度约为38ms。
 
 * 树莓派与HC-SR04 连接示意图 ![连接图](https://raw.githubusercontent.com/RaphaelZheng/BackendPyHRL/master/resource/Interfacing-Raspberry-Pi-with-HC-SR04.jpg)
 

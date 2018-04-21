@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#coding:utf-8
+# coding:utf-8
 
 import os
 import asyncio
@@ -10,6 +10,15 @@ from bson import json_util as jsonb
 import modbushandle as md
 import raspiberry
 import codecs
+
+'''设备id_ip映射表'''
+
+id_ip = {
+    1: "192.168.1.101",
+    2: "192.168.1.102",
+    3: "192.168.1.103",
+    4: "192.168.1.104"
+}
 
 '''登录操作'''
 
@@ -26,7 +35,7 @@ def check_account(message):
             data = {"code": "102", "mes": "账户登录：错误，密码与账号不符", "data": None}
         else:
             data = {"code": "100", "mes": "账户登录：成功", "data": account_set}
-    print("message:" + str(message) + "data:" + str(data))
+    print("message:{0},data:{1}".format(str(message), str(data)))
     return data
 
 
@@ -66,14 +75,14 @@ def get_info(message):
     return data
 
 
-def save_file(docement_dir, docement):
-    bin_file = codecs.open(os.path.abspath('.') + "\\" + docement_dir + "\\" + docement["name"], "w+", "utf-8")
-    bin_file.write(docement["content"])
+def save_file(document_dir, document):
+    bin_file = codecs.open(os.path.abspath('.') + "\\" + document_dir + "\\" + document["name"], "w+", "utf-8")
+    bin_file.write(document["content"])
     bin_file.close()
 
 
-def make_file(docement_dir, name):
-    bin_file = codecs.open(os.path.abspath('.') + "\\" + docement_dir + "\\" + name, "r", "utf-8")
+def make_file(document_dir, name):
+    bin_file = codecs.open(os.path.abspath('.') + "\\" + document_dir + "\\" + name, "r", "utf-8")
     temp = bin_file.read()
     bin_file.close()
     return temp
@@ -96,17 +105,17 @@ def operate(message):
     data = {}
     if flag == "upload":
         save_file(slave["kind"], message["docement"])
-        data = {"code": "400", "mes": "上传文件："+slave["name"]+",成功", "data": None}
+        data = {"code": "400", "mes": "上传文件：" + slave["name"] + ",成功", "data": None}
     elif flag == "download":
         experiment = message["experiment"]
         slave_kind = message["slave"]["kind"]
-        data = {"code": "401", "mes": "文件下载在D:\\"+experiment, "data": make_file(slave_kind, experiment)}
+        data = {"code": "401", "mes": "文件下载在D:\\" + experiment, "data": make_file(slave_kind, experiment)}
     elif flag == "start":
         experiment = message["experiment"]
         slave_kind = message["slave"]["kind"]
         slave_id = message["slave"]["id"]
         slave_state = message["slave"]["state"]
-        ip = md.device_host[slave_id]
+        ip = id_ip[slave_id]
         db.slaves.update({"id": slave_id}, {"$set": {"state": slave_state}})
         if slave_kind == "RaspberryPi":
             data = {"code": "402", "mes": raspiberry.transport(ip, experiment),
@@ -119,17 +128,23 @@ def operate(message):
             data = {"code": "402", "mes": "", "data": None}
     elif flag == "modbus":
         modbus_mes = message["modbus"]
-        res = md.Master(message["slave"]["id"], modbus_mes["function_code"], modbus_mes["starting_address"],
-                        modbus_mes["quantity_of_x"], )
+        slave_kind = message["slave"]["kind"]
+        slave_id = message["slave"]["id"]
+        res = ""
+        if 'RaspberryPi' == slave_kind:
+            res = md.Master(id_ip[slave_id], modbus_mes["function_code"], modbus_mes["starting_address"],
+                            modbus_mes["quantity_of_x"], )
+        else:
+            pass
         data = {"code": "403", "mes": "Modbus指令执行结果：" + str(res), "data": None}
     elif flag == "stop":
         slave_kind = message["slave"]["kind"]
         slave_id = message["slave"]["id"]
         slave_state = message["slave"]["state"]
-        ip = md.device_host[slave_id]
+        ip = id_ip[slave_id]
         db.slaves.update({"id": slave_id}, {"$set": {"state": slave_state}})
         if slave_kind == "RaspberryPi":
-            data = {"code": "404", "mes":  raspiberry.stop(ip),
+            data = {"code": "404", "mes": raspiberry.stop(ip),
                     "data": None}
         elif slave_kind == "CC3200":
             data = {"code": "404", "mes": "", "data": None}
