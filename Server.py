@@ -15,10 +15,10 @@ import codecs
 
 
 def check_account(message):
-    id = message["id"]
+    account_id = message["id"]
     password = message["password"]
-    account_set = account.find_one({"id": id})
-    if account_set == None:
+    account_set = account.find_one({"id": account_id})
+    if account_set is None:
         data = {"code": "101", "mes": "账户登录：错误，不存在账户", "data": None}
     else:
         account_set.pop("_id")
@@ -34,9 +34,9 @@ def check_account(message):
 
 
 def modify_password(message):
-    id = message["id"]
+    account_id = message["id"]
     password = message["password"]
-    account.update({"id": id}, {"$set": {"password": password}})
+    account.update({"id": account_id}, {"$set": {"password": password}})
     data = {"code": "200", "mes": "密码修改：成功", "data": None}
     print("message:" + str(message) + "data:" + str(data))
     return data
@@ -48,12 +48,13 @@ def modify_password(message):
 def get_info(message):
     flag = message["flag"]
     if flag == "slaves":
-        temp=list(db.slaves.find())
-        for i in temp: i.pop("_id")
-        data = {"code": "300", "mes": "获取信息：slaves，成功", "data":temp }
+        temp = list(db.slaves.find())
+        for i in temp:
+            i.pop("_id")
+        data = {"code": "300", "mes": "获取信息：slaves，成功", "data": temp}
     elif flag == "log":
-        id = message["id"]
-        temp = list(db[id]["log"].find().sort("time", pymongo.DESCENDING).limit(10))
+        account_id = message["id"]
+        temp = list(db[account_id]["log"].find().sort("time", pymongo.DESCENDING).limit(10))
         for i in temp:
             t = i["time"]
             i["time"] = time.asctime(t)
@@ -65,14 +66,14 @@ def get_info(message):
     return data
 
 
-def save_file(dir, docement):
-    bin_file = codecs.open(os.path.abspath('.') + "\\" + dir + "\\" + docement["name"], "w+", "utf-8")
+def save_file(docement_dir, docement):
+    bin_file = codecs.open(os.path.abspath('.') + "\\" + docement_dir + "\\" + docement["name"], "w+", "utf-8")
     bin_file.write(docement["content"])
     bin_file.close()
 
 
-def make_file(dir, name):
-    bin_file = codecs.open(os.path.abspath('.') + "\\" + dir + "\\" + name, "r","utf-8")
+def make_file(docement_dir, name):
+    bin_file = codecs.open(os.path.abspath('.') + "\\" + docement_dir + "\\" + name, "r", "utf-8")
     temp = bin_file.read()
     bin_file.close()
     return temp
@@ -81,8 +82,8 @@ def make_file(dir, name):
 '''操作记录日志'''
 
 
-def db_log(id, data):
-    db[id].insert_one({"time": time.time(), "data": str(data)})
+def db_log(account_id, data):
+    db[account_id].insert_one({"time": time.time(), "data": str(data)})
 
 
 '''设备操作：对于设备相关，需要在此修改'''
@@ -90,11 +91,11 @@ def db_log(id, data):
 
 def operate(message):
     flag = message["flag"]
-    id = message["id"]
+    account_id = message["id"]
     slave = message["slave"]
-    data={}
+    data = {}
     if flag == "upload":
-        save_file(slave["kind"],message["docement"])
+        save_file(slave["kind"], message["docement"])
         data = {"code": "400", "mes": "上传文件："+slave["name"]+",成功", "data": None}
     elif flag == "download":
         experiment = message["experiment"]
@@ -113,9 +114,9 @@ def operate(message):
         elif slave_kind == "CC3200":
             data = {"code": "402", "mes": "", "data": None}
         elif slave_kind == "Arduino":
-            data = {"code": "402", "mes":"", "data": None}
+            data = {"code": "402", "mes": "", "data": None}
         elif slave_kind == "STM32":
-            data = {"code": "402", "mes":"" , "data": None}
+            data = {"code": "402", "mes": "", "data": None}
     elif flag == "modbus":
         modbus_mes = message["modbus"]
         res = md.Master(message["slave"]["id"], modbus_mes["function_code"], modbus_mes["starting_address"],
@@ -131,17 +132,20 @@ def operate(message):
             data = {"code": "404", "mes":  raspiberry.stop(ip),
                     "data": None}
         elif slave_kind == "CC3200":
-            data = {"code": "404", "mes":"", "data": None}
+            data = {"code": "404", "mes": "", "data": None}
         elif slave_kind == "Arduino":
             data = {"code": "404", "mes": "", "data": None}
         elif slave_kind == "STM32":
             data = {"code": "404", "mes": "", "data": None}
     print("message:" + str(message) + "data:" + str(data))
-    db_log(id, {"message": message, "data": data})
+    db_log(account_id, {"message": message, "data": data})
     return data
 
 
-async def Server(websocket, path):
+'''操作入口'''
+
+
+async def websocket_server(websocket, path):
     mode = (path.split("="))[1]
     if mode == "login":
         data = check_account(jsonb.loads(await websocket.recv()))
@@ -161,6 +165,6 @@ if __name__ == "__main__":
     db = client.hducloud
     account = db.account
 
-    wsServer = websockets.serve(Server, 'localhost', 80)
+    wsServer = websockets.serve(websocket_server, 'localhost', 80)
     asyncio.get_event_loop().run_until_complete(wsServer)
     asyncio.get_event_loop().run_forever()
