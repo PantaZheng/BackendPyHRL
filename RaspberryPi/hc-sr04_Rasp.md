@@ -48,14 +48,15 @@
 
 ---
 
-## 树莓派
+## 树莓派相关
 
 ### 树莓派引脚模式-编号对应表
 
 ![对应表](https://raw.githubusercontent.com/RaphaelZheng/BackendPyHRL/master/resource/20161230104544903.png)
 
-### 不结合Mobus的例程
+### 实验样机图片
 
+![样机](https://raw.githubusercontent.com/RaphaelZheng/BackendPyHRL/master/resource/树莓派超声波实验样机.jpg)
 
 
 
