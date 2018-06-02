@@ -1,6 +1,6 @@
-#!/usr/bin/env python
-#coding:utf-8
+from MongoDB import Rebuild
 
-import modbus_tk.defines as cst
+list=Rebuild.slaves_rebuild()
 
-
+for i in list:
+    print(i)

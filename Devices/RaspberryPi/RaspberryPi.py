@@ -11,7 +11,8 @@ def transport(ip, document_name):
     slave = paramiko.Transport(ip, 22)
     slave.connect(username='pi', password='52sunsiyi..')
     sftp=paramiko.SFTPClient.from_transport(slave)
-    sftp.put(os.path.abspath('.') +"\\RaspberryPi\\" + document_name, "/home/pi/Files/"+document_name)# 传输文件
+    # 需要修改device
+    #sftp.put(os.path.abspath('.') +"\\"+RaspberryPi\\" + document_name, "/home/pi/Files/"+document_name)# 传输文件
     slave.close()
     return document_name+"文件下载到从机成功！"
 

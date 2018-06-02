@@ -7,7 +7,7 @@ import websockets
 import pymongo
 import time
 from bson import json_util as jsonb
-import raspiberry
+from Devices.RaspberryPi import RaspberryPi
 import codecs
 
 '''设备id_ip映射表'''
@@ -115,9 +115,9 @@ def operate(message):
     elif flag == "start":
         db.slaves.update({"id": slave_id}, {"$set": {"state": slave_state}})
         if slave_kind == "RaspberryPi":
-            data = {"code": "402", "mes": raspiberry.transport(ip, experiment),
+            data = {"code": "402", "mes": RaspberryPi.transport(ip, experiment),
                     "data": None}
-            raspiberry.start(ip, experiment)
+            RaspberryPi.start(ip, experiment)
         elif slave_kind == "CC3200":
             data = {"code": "402", "mes": "", "data": None}
         elif slave_kind == "Arduino":
@@ -129,8 +129,8 @@ def operate(message):
         print(str(modbus_mes))
         res = ""
         if 'RaspberryPi' == slave_kind:
-            res = raspiberry.order(ip, modbus_mes["function_code"], modbus_mes["starting_address"],
-                            modbus_mes["quantity_of_x"])
+            res = RaspberryPi.order(ip, modbus_mes["function_code"], modbus_mes["starting_address"],
+                                    modbus_mes["quantity_of_x"])
         else:
             pass
         data = {"code": "403", "mes": "Modbus指令执行结果：" + str(res), "data": None}
@@ -141,7 +141,7 @@ def operate(message):
         ip = id_ip[slave_id]
         db.slaves.update({"id": slave_id}, {"$set": {"state": slave_state}})
         if slave_kind == "RaspberryPi":
-            data = {"code": "404", "mes": raspiberry.stop(ip),
+            data = {"code": "404", "mes": RaspberryPi.stop(ip),
                     "data": None}
         elif slave_kind == "CC3200":
             data = {"code": "404", "mes": "", "data": None}
