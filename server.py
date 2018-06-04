@@ -7,19 +7,35 @@ import websockets
 import pymongo
 import time
 from bson import json_util as jsonb
-from Devices.RaspberryPi import RaspberryPi
+from MongoDB import db
+from Update import RaspberryPi
 import codecs
+import tornado.webscoket
 
-'''设备id_ip映射表'''
+async def websocket_server(websocket, path):
+    mode = (path.split("="))[1]
+    elif mode == "modify":
+        data = modify_password(jsonb.loads(await websocket.recv()))
+    elif mode == "info":
+        data = get_info(jsonb.loads(await websocket.recv()))
+    elif mode == "operate":
+        data = operate(jsonb.loads(await websocket.recv()))
+    else:
+        data = {"code": "001", "mes": "路径错误", "data": None}
+    await websocket.send(jsonb.dumps(data, ensure_ascii=False))
 
-id_ip = {
-    1: "192.168.1.101",
-    2: "192.168.1.102",
-    3: "192.168.1.103",
-    4: "192.168.1.104"
-}
+class LabServer:
+        def __init__(self):
+            self.db=db.LabDB().db
+            self.server=websockets.serve(websocket_server, 'localhost', 80)
 
-'''登录操作'''
+        def start(self):
+            asyncio.get_event_loop().run_until_complete(self.server)
+            asyncio.get_event_loop().run_forever()
+
+        def exit(self):
+            self.db.close()
+
 
 
 def check_account(message):
@@ -157,26 +173,12 @@ def operate(message):
 '''操作入口'''
 
 
-async def websocket_server(websocket, path):
-    mode = (path.split("="))[1]
-    if mode == "login":
-        data = check_account(jsonb.loads(await websocket.recv()))
-    elif mode == "modify":
-        data = modify_password(jsonb.loads(await websocket.recv()))
-    elif mode == "info":
-        data = get_info(jsonb.loads(await websocket.recv()))
-    elif mode == "operate":
-        data = operate(jsonb.loads(await websocket.recv()))
-    else:
-        data = {"code": "001", "mes": "路径错误", "data": None}
-    await websocket.send(jsonb.dumps(data, ensure_ascii=False))
+
 
 
 if __name__ == "__main__":
-    client = pymongo.MongoClient()
-    db = client.hducloud
-    account = db.account
-
-    wsServer = websockets.serve(websocket_server, 'localhost', 80)
-    asyncio.get_event_loop().run_until_complete(wsServer)
+    lab_server=LabServer()
+    server=lab_server.server
+    asyncio.get_event_loop().run_until_complete(server)
     asyncio.get_event_loop().run_forever()
+    db.close()
