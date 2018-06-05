@@ -15,40 +15,71 @@ import websockets
 import pymongo
 import time
 from bson import json_util as jsonb
-from MongoDB import db
+from MongoDB import mongodb
 from Update import RaspberryPi
 import codecs
 import tornado.webscoket
 
 
-lab_db=db.LabDB().db
+lab_db=db.LabDB().db#mongodb
+
+
+def save_file(document_dir, document):
+    bin_file = codecs.open(os.path.abspath('.') + "\\" + document_dir + "\\" + document["name"], "w+", "utf-8")
+    bin_file.write(document["content"])
+    bin_file.close()
+
+
+def make_file(document_dir, name):
+    bin_file = codecs.open(os.path.abspath('.') + "\\" + document_dir + "\\" + name, "r", "utf-8")
+    temp = bin_file.read()
+    bin_file.close()
+    return temp
 
 class RemoteLab(object):
     callbacks = []
 
-
-class WelcomeHandler(tornado.web.RequestHandler):
-    def get(self):
-        self.render('index.html')
-
+'''Http'''
 class LoginHandler(tornado.web.RequestHandler):
     def post(self):
         account= self.get_argument("account")
         password = self.get_argument("password")
-        token=lab_db.login_confirm(account,password)
-        if token is None:
-            self.write(jsonb.dumps({"code": 201, "message": "Login failed!"}))
+        account_set=lab_db.login_check(account,password)
+        if account_set is None:
+            self.write(jsonb.dumps({"code": 201, "message": "Login error!","data":None}))
         else:
-            self.write(jsonb.dumps({"code": 200, "message": token}))
+            self.write(jsonb.dumps({"code": 200, "message": "Login successful!",
+                                    "data":account_set}))
 
 class OperateHandler(tornado.web.RequestHandler):
-    def post(self):
-        elif action=="modify":
-            lab_db.moify_pwd(account,password)
-            self.write(jsonb.dumps({"code": 200, "message": "Modify successful!"}))
+    def get(self):
+        account = self.get_argument("account")
+        token = self.get_argument("token")
+        if lab_db.token_check(account, token):
+            kind = self.get_argument("kind")
+            if kind=="experiment":
+                #db提供查询
+            elif kind=="log":
+                #db提供查询，前端传过去审查role
         else:
-            self.set_status(400)
+            self.write(jsonb.dumps({"code": 201, "message": "Token error",
+                                    "data": None}))
 
+
+
+    def post(self):
+        account = self.get_argument("account")
+        token = self.get_argument("token")
+        if lab_db.token_check(account,token):
+            action = self.get_argument("action")
+            id action=="modify":
+
+        else:
+            self.write(jsonb.dumps({"code": 201, "message": "Token error",
+                                    "data": None}))
+
+
+'''WebSocket'''
 
 class LabHandler(tornado.websocket.WebSocketHandler):
     def open(self):
@@ -70,7 +101,6 @@ class Application(tornado.web.Application):
 
 
         handlers = [
-            (r'/',WelcomeHandler)
             (r'/login', LoginHandler),
             (r'/operate',OperateHandler)
             (r'/download',LoadHandler)

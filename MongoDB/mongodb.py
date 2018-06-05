@@ -3,14 +3,18 @@ import csv
 import os
 from uuid import uuid4
 
-
 class LabDB:
     """
     必须在程序目录下调用该文件，接口目录设置位于上层
+    响应代码：
+    200-正常响应
     """
     def __init__(self):
         self.client = pymongo.MongoClient()
         self.db=self.client.db
+        self.staff=self.db.staff
+        self.slaves=self.db.slaves
+        self.log=self.db.log
 
     def close(self):
         self.client.close()
@@ -22,6 +26,8 @@ class LabDB:
         self.slaves_rebuild()
         self.log_rebuild()
 
+
+    '''staff-----------------------------------------------------------------'''
     def staff_rebuild(self,path=None):
         """
         人员信息重建
@@ -31,7 +37,7 @@ class LabDB:
         """
         if path is None:
             path= "school.csv"
-        staff = self.db.staff
+        staff=self.staff
         staff.drop()
         with open("MongoDB\\"+path, encoding='utf-8') as csv_file:
             csv_reader = csv.reader(csv_file)
@@ -40,20 +46,36 @@ class LabDB:
                 name = row[1]
                 role = row[3]
                 if role=="student" or role =="staff":
-                    staff.insert_one({"id":id,"password":"id","role":role,"name":name,"token":uuid4()})
+                    staff.insert_one({"id":id,"password":id,"role":role,
+                                      "name":name,"token":uuid4()})
         print("人员数据库初始化为："+str(staff.count()))
 
-    def login_confirm(self,id,password):
-        staff = self.db.staff
+    def login_check(self,id,password):
+        staff=self.staff
         real_pwd=staff.find_one({"id":id})["password"]
         if real_pwd==password:
             token=uuid4()
-            staff.update({"id":id},{"$set":{"token":token}} )
-            return token
+            staff.update({"id":id},{"$set":{"token":token}})
+            account_set=staff.find_one({"id":id})
+            account_set.pop("_id")#删除_id
+            account_set.pop("id")#删除id
+            account_set.pop("password")#删除pwd
+            return account_set
 
-    def modify_password(self,id,password):
-        staff = self.db.staff
-        staff.update({"id": id}, {"$set": {"password": password}})
+    def modify_password(self,id,token,password):
+        staff = self.staff
+        if self.token_check(id,token):
+            staff.update({"id": id}, {"$set": {"password": password}})
+            return 200
+
+    def token_check(self,id,token):
+        staff=self.staff
+        if token!=staff.find_one({"id":id})["token"]:
+            return False
+        else:
+            return True
+
+    '''slaves----------------------------------------------------------------'''
 
     def slaves_rebuild(self):
         """
@@ -73,7 +95,7 @@ class LabDB:
         }
 
         #抛弃数据库中从机表
-        slaves = self.db.slaves
+        slaves = self.slaves
         slaves.drop()
 
         #数据建立
@@ -96,21 +118,31 @@ class LabDB:
         print("从机数据库初始化为："+str(slaves.count()))
 
     def slave_update(self,slave_id):
-        slaves = self.db.slaves
+        slaves = self.slaves
         slave_state=slaves.find_one({"id":slave_id})["state"]
         slaves.update({"id": slave_id}, {"$set": {"state": not slave_state}})
 
+    '''log-------------------------------------------------------------------'''
+
     # 抛弃日志表
     def log_rebuild(self):
-        log = self.db.log
+        log = self.log
         log.drop()
         print("日志数据库初始化为:"+str(log.count()))
 
-    def log_insert(self,staff,slave,message):
-        pass
+    #websocket,选哟
+    def log_insert(self,staff_id,slave_id,message):
 
-    def test(self):
-        testdb=self.db.slaves
-        print(list(testdb.find()))
-        #self.slave_update(1)
-        print(list(testdb.find()))
+            return
+
+
+    def log_get_staff(self,token,staff_id,):
+        if self.token_check(staff_id,token):
+
+        else
+
+    def log_get_device
+
+    def log_get_alll
+
+

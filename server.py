@@ -37,23 +37,6 @@ class LabServer:
             self.db.close()
 
 
-
-def check_account(message):
-    account_id = message["id"]
-    password = message["password"]
-    account_set = account.find_one({"id": account_id})
-    if account_set is None:
-        data = {"code": "101", "mes": "账户登录：错误，不存在账户", "data": None}
-    else:
-        account_set.pop("_id")
-        if account_set["password"] != password:
-            data = {"code": "102", "mes": "账户登录：错误，密码与账号不符", "data": None}
-        else:
-            data = {"code": "100", "mes": "账户登录：成功", "data": account_set}
-    print("message:{0},data:{1}".format(str(message), str(data)))
-    return data
-
-
 '''改密操作'''
 
 
